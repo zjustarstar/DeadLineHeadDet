@@ -53,17 +53,19 @@ def infer_main(model, trans, image, device):
         outputs = model(inputs)
         
         # 打印原始输出和概率分布
-        print("原始输出:", outputs)
+        # print("原始输出:", outputs)
         probabilities = torch.nn.functional.softmax(outputs, dim=1)
-        print("概率分布:", probabilities)
+        # 将v和3两个很相似的类别概率相加，可能能超过0.7的阈值，从而去掉一些伪区域;
+        probabilities[0][2] = probabilities[0][2] + probabilities[0][3]
+        # print("概率分布:", probabilities)
         
-        for i, prob in enumerate(probabilities[0]):
-            print(f"类别 {i}: {prob.item():.4f} ({prob.item()*100:.2f}%)")
+        # for i, prob in enumerate(probabilities[0]):
+        #     print(f"类别 {i}: {prob.item():.4f} ({prob.item()*100:.2f}%)")
 
         # 统计
-        _, predicted = torch.max(outputs, 1)
+        max_prob, predicted = torch.max(probabilities, 1)
 
-    return predicted, probabilities
+    return predicted.item(), max_prob.item()
 
 
 def load_model(model_path, device):
@@ -114,8 +116,26 @@ def main():
     # 设置多个测试样本，从不同类别中选择
     test_images = [
         "sample\\n\\0721_171625_400.png",       # n类别样本
+        "sample\\n\\8_0728_145554_589.png",  # n类别样本
+        "sample\\n\\8_0728_145554_766.png",  # n类别样本
+        "sample\\3\\1_0728_143631_408.png",    # 3类别样本
+         "sample\\3\\2_0728_144543_554.png",     # 3类别样本
+         "sample\\3\\2_0728_144543_812.png",     # 3类别样本
+        "sample\\smallv\\2_0728_144543_686.png", # smallv类别样本
+        "sample\\smallv\\5_0728_144934_290.png", # smallv类别样本
+        "sample\\smallv\\5_0728_144934_322.png", # smallv类别样本
+        "sample\\t\\4_0728_182823_777.png", # t类别样本
+        "sample\\t\\4_0728_182823_897.png", # t类别样本
+        "sample\\t\\0721_165009_006.png", # t类别样本
+        "sample\\v\\3_0728_144654_032.png", # t类别样本
+        "sample\\v\\3_0728_144654_038.png", # t类别样本
+        "sample\\v\\5_0728_144934_097.png", # t类别样本
         "sample\\ss\\0721_172011_303.png",     # ss类别样本
-        "sample\\other\\0721_171025_664.png"   # other类别样本
+        "sample\\ss\\0721_172011_313.png",  # ss类别样本
+        "sample\\ss\\0721_172440_646.png",  # ss类别样本
+        "sample\\other\\0721_171025_664.png",   # other类别样本
+        "sample\\other\\3_0728_182658_873.png",  # other类别样本
+        "sample\\other\\0721_171128_743.png"  # other类别样本
     ]
     
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -152,12 +172,16 @@ def main():
             
             # 获取类别名称
             if class_id.item() == 0:
-                class_name = "N"
+                class_name = "n"
             elif class_id.item() == 1:
                 class_name = "ss"
             elif class_id.item() == 2:
-                class_name = "wv"
+                class_name = "3"
             elif class_id.item() == 3:
+                class_name = "v"
+            elif class_id.item() == 4:
+                class_name = "smallv"
+            elif class_id.item() == 5:
                 class_name = "t"
             else:
                 class_name = "other"
@@ -166,10 +190,10 @@ def main():
             print(f"预测类别名称: {class_name}")
             
             # 打印所有类别的概率
-            print("\n所有类别的概率:")
-            class_names = ["N", "ss", "wv", "t", "other"]
-            for j, prob in enumerate(probabilities[0]):
-                print(f"{class_names[j]}: {prob.item():.6f} ({prob.item()*100:.2f}%)")
+            # print("\n所有类别的概率:")
+            # class_names = ["N", "ss", "wv", "t", "other"]
+            # for j, prob in enumerate(probabilities[0]):
+            #     print(f"{class_names[j]}: {prob.item():.6f} ({prob.item()*100:.2f}%)")
                 
         except Exception as e:
             print(f"处理样本时出错: {e}")

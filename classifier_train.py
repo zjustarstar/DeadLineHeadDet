@@ -32,12 +32,16 @@ class DeadlineDataset(Dataset):
             self.label = 0
         elif class_name == "ss":
             self.label = 1
-        elif class_name == "wv":
+        elif class_name == "3":
             self.label = 2
-        elif class_name == "t":
+        elif class_name == "v":
             self.label = 3
-        else:
+        elif class_name == "smallv":
             self.label = 4
+        elif class_name == "t":
+            self.label = 5
+        else:
+            self.label = 6
         
         # 获取所有图像文件
         self.image_files = []
@@ -103,12 +107,14 @@ def prepare_data(data_dir):
     # 创建正样本和负样本数据集
     dataset_n = DeadlineDataset(data_dir, "n", transform=train_transform)
     dataset_ss = DeadlineDataset(data_dir, "ss", transform=train_transform)
-    dataset_wv = DeadlineDataset(data_dir, "wv", transform=train_transform)
+    dataset_3 = DeadlineDataset(data_dir, "3", transform=train_transform)
+    dataset_v = DeadlineDataset(data_dir, "v", transform=train_transform)
+    dataset_smallv = DeadlineDataset(data_dir, "smallv", transform=train_transform)
     dataset_t = DeadlineDataset(data_dir, "t", transform=train_transform)
     dataset_other = DeadlineDataset(data_dir, "other", transform=train_transform)
     
     # 合并数据集
-    dataset = torch.utils.data.ConcatDataset([dataset_n, dataset_ss, dataset_wv, dataset_t, dataset_other])
+    dataset = torch.utils.data.ConcatDataset([dataset_n, dataset_ss, dataset_3, dataset_v, dataset_smallv, dataset_t, dataset_other])
     print(f"加载了 {len(dataset)} 样本")
     
     # 划分训练集和验证集

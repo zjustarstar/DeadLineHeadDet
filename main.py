@@ -367,7 +367,8 @@ def filter_by_classifier(model, device, image, coordinates):
         pil_img = Image.fromarray(cv_img_rgb)
 
         # 进行推理;
-        class_id, prob = infer.infer_main(model, pil_img, device=device)
+        trans = infer.create_data_transforms()
+        class_id, prob = infer.infer_main(model, trans, pil_img, device=device)
         if not (class_id <= 4 and prob>0.7):
             final_point.append(coordinates[i])
 
@@ -439,7 +440,7 @@ def change_extension_to_png(file_path):
     return new_file_path
 
 
-def deal_single(data_path, model, device, output_dir):
+def deal_single(data_path, model, device, output_dir=""):
     try:
         if is_pdf_by_extension(data_path):
             img, _ = pdf_to_image(data_path, 0)
@@ -468,36 +469,39 @@ def deal_single(data_path, model, device, output_dir):
             final_points = filter_by_classifier(model, device, img, filtered_points)
         print(f"cnn过滤后的分支点数量: {len(final_points)}")
 
-        # 绘制分支点
-        print("正在绘制结果...")
+        # 根据output_dir来判断是会否保存一些测试图
+        output_path=""
+        if output_dir != "":
+            # 绘制分支点
+            print("正在绘制结果...")
 
-        # 保存结果图像
-        if is_pdf_by_extension(data_path):
-            data_path = change_extension_to_png(data_path)
-        filename = os.path.basename(data_path)
-        name, extension = os.path.splitext(filename)
+            # 保存结果图像
+            if is_pdf_by_extension(data_path):
+                data_path = change_extension_to_png(data_path)
+            filename = os.path.basename(data_path)
+            name, extension = os.path.splitext(filename)
 
-        if not os.path.exists(output_dir):
-            os.makedirs(output_dir)
-            print(f"目录 {output_dir} 不存在，已创建")
+            if not os.path.exists(output_dir):
+                os.makedirs(output_dir)
+                print(f"目录 {output_dir} 不存在，已创建")
 
-        # 最初始的结果
-        result_image_before = draw_branch_points(gray_image, branch_points)
-        output_path = os.path.join(output_dir, f"{name}_aa{extension}")
-        cv2.imwrite(output_path, result_image_before)
+            # 最初始的结果
+            result_image_before = draw_branch_points(gray_image, branch_points)
+            output_path = os.path.join(output_dir, f"{name}_aa{extension}")
+            cv2.imwrite(output_path, result_image_before)
 
-        # dense过滤的结果
-        result_image_dense = draw_branch_points(gray_image, filtered_points)
-        output_path = os.path.join(output_dir, f"{name}_after_dense{extension}")
-        cv2.imwrite(output_path, result_image_dense)
+            # dense过滤的结果
+            result_image_dense = draw_branch_points(gray_image, filtered_points)
+            output_path = os.path.join(output_dir, f"{name}_after_dense{extension}")
+            cv2.imwrite(output_path, result_image_dense)
 
-        # 最终的结果
-        result_image_classifier = draw_branch_points(gray_image, final_points)
-        output_path = os.path.join(output_dir, f"{name}_final{extension}")
-        cv2.imwrite(output_path, result_image_classifier)
-        print(f"结果已保存到: {output_path}")
+            #最终的结果
+            result_image_classifier = draw_branch_points(gray_image, final_points)
+            output_path = os.path.join(output_dir, f"{name}_final{extension}")
+            cv2.imwrite(output_path, result_image_classifier)
+            print(f"结果已保存到: {output_path}")
 
-        return len(final_points), output_path
+        return final_points
 
     except FileNotFoundError:
         print(f"错误: 找不到文件 '{data_path}'")
@@ -523,8 +527,8 @@ def deal_batch(dir_path, model, device, output_dir):
     pts = []
     for image_path in data_files:
         print(f"\n处理图像 {i+1}/{len(data_files)}: {image_path}")
-        pt =  deal_single(image_path, model, device, output_dir)
-        pts.append(pt)
+        pt = deal_single(image_path, model, device, output_dir)
+        pts.append(len(pt))
         i = i + 1
 
     print(f"minPts={min(pts)}, maxPts={max(pts)}, avgPts={sum(pts)/len(data_files)}")
@@ -579,21 +583,22 @@ if __name__ == "__main__":
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     print(f"使用设备: {device}")
 
-    # 加载模型
+    # 加载模型,注意只加载一次
     model_path = ".\\models\\classifier.pth"
     model = infer.load_model(model_path, device)
 
     start_time = time.time()
     # 单个文件
     output_dir = "output"
-    data_path = "data\\ori1.png"
+    data_path = "data\\pdf\\t2.png"
     file_size = 1
-    points_num, output_file = deal_single(data_path, model, device, output_dir)
-    print(f'最终点数:{points_num}, 文件保存路径:{output_file}')
+    # 如果不需要输出,则只需要输入前三个参数，或者将output_dir设为""
+    #points = deal_single(data_path, model, device, output_dir)
+    # print(f'最终点数:{len(points)}')
 
     # 批处理
     dir_path = "data\\pdf"
-    # file_size = deal_batch(dir_path, model, device, output_dir)
+    file_size = deal_batch(dir_path, model, device, output_dir)
     # 记录结束时间
     end_time = time.time()
 
