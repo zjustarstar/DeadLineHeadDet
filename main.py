@@ -592,13 +592,13 @@ if __name__ == "__main__":
     output_dir = "output"
     data_path = "data\\pdf\\t2.png"
     file_size = 1
-    # 如果不需要输出,则只需要输入前三个参数，或者将output_dir设为""
-    #points = deal_single(data_path, model, device, output_dir)
-    # print(f'最终点数:{len(points)}')
+    # 如果不需要输出带有红圈的结果图,则只需要输入前三个参数，或者将output_dir设为""
+    points = deal_single(data_path, model, device, output_dir)
+    print(f'最终点数:{len(points)}')
 
     # 批处理
     dir_path = "data\\pdf"
-    file_size = deal_batch(dir_path, model, device, output_dir)
+    # file_size = deal_batch(dir_path, model, device, output_dir)
     # 记录结束时间
     end_time = time.time()
 
